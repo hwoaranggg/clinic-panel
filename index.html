@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Панель клиники</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #12151c;
+    --surface-2: #181c25;
+    --line: rgba(255,255,255,.07);
+    --text: #eef1f6;
+    --muted: #8a93a6;
+    --faint: #5a6273;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --violet: #a78bfa;
+    --cyan: #22d3ee;
+    --red: #f87171;
+    --accent: #7dd3fc;
+    --slot: 30px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 20px; font-weight: 650; letter-spacing: -.01em; margin-top: 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+          color: var(--green); background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.25);
+          padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .live i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(52,211,153,.6);
+            animation: pulse 1.8s infinite; }
+  .live.off { color: var(--muted); background: transparent; border-color: var(--line); }
+  .live.off i { background: var(--faint); animation: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.55); } 70% { box-shadow: 0 0 0 7px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 11px; position: relative; overflow: hidden; }
+  .kpi .label { font-size: 12px; color: var(--muted); }
+  .kpi .value { font-size: 24px; font-weight: 650; letter-spacing: -.02em; margin-top: 4px; transition: color .4s; }
+  .kpi .value small { font-size: 14px; color: var(--muted); font-weight: 500; margin-left: 2px; }
+  .kpi .hint { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+  .kpi.money .value { color: var(--green); }
+  .bar { height: 4px; border-radius: 4px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+  .bar b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--cyan)); border-radius: 4px; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+  .kpi.bump { animation: bump .9s ease; }
+  @keyframes bump { 0% { border-color: var(--line); } 25% { border-color: rgba(52,211,153,.6); box-shadow: 0 0 0 3px rgba(52,211,153,.12); } 100% { border-color: var(--line); } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 10px 12px 0; margin-bottom: 16px; }
+  .card-title { display: flex; justify-content: space-between; align-items: baseline; padding: 0 2px 10px 12px; }
+  .card-title h2 { font-size: 14px; font-weight: 600; }
+  .card-title span { font-size: 12px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: 38px repeat(var(--cols), 1fr); column-gap: 4px; }
+  .doc { font-size: 11.5px; font-weight: 600; text-align: center; padding-bottom: 8px; line-height: 1.2; }
+  .doc span { display: block; font-weight: 400; color: var(--faint); font-size: 10.5px; margin-top: 1px; }
+  .times { position: relative; }
+  .times div { height: var(--slot); font-size: 10.5px; color: var(--faint); text-align: right; padding-right: 6px; transform: translateY(-6px); }
+  .col { position: relative; border-left: 1px solid var(--line); background:
+         repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--slot) * 2 - 1px), var(--line) calc(var(--slot) * 2 - 1px), var(--line) calc(var(--slot) * 2)); }
+
+  .appt { position: absolute; left: 2px; right: 0; border-radius: 7px; padding: 3px 5px; overflow: hidden;
+          font-size: 10.5px; line-height: 1.2; border-left: 3px solid; transition: background .5s, border-color .5s, top .6s cubic-bezier(.2,.8,.2,1); }
+  .appt b { display: block; font-weight: 600; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appt em { font-style: normal; opacity: .75; white-space: nowrap; }
+  .s-confirmed { background: rgba(52,211,153,.13); border-color: var(--green); color: #bdf5df; }
+  .s-scheduled { background: rgba(251,191,36,.12); border-color: var(--amber); color: #fde9b0; }
+  .s-reschedule_requested { background: rgba(96,165,250,.14); border-color: var(--blue); color: #cfe2ff; }
+  .src-waitlist { background: rgba(167,139,250,.16); border-color: var(--violet); color: #e2d9ff; }
+  .moved { background: rgba(34,211,238,.13); border-color: var(--cyan); color: #c8f6ff; }
+  .mine { box-shadow: 0 0 0 1.5px var(--accent), 0 0 18px rgba(125,211,252,.35); z-index: 2; }
+  .mine b::before { content: "● "; color: var(--accent); }
+  .appt.flash { animation: flash 1.6s ease; }
+  @keyframes flash { 0%, 100% { filter: none; } 20% { filter: brightness(1.9) saturate(1.3); transform: scale(1.03); } }
+  .freed { position: absolute; left: 2px; right: 0; border-radius: 7px; border: 1.5px dashed rgba(248,113,113,.7);
+           background: rgba(248,113,113,.07); color: #fecaca; font-size: 10.5px; padding: 3px 5px; animation: blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 50% { background: rgba(248,113,113,.16); } }
+  .now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--red); z-index: 3; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 12px 2px 0 12px; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
+
+  .feed { list-style: none; padding: 0 12px; }
+  .feed li { display: grid; grid-template-columns: 58px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .feed li:first-child { border-top: 0; }
+  .feed time { color: var(--faint); font-size: 11.5px; padding-top: 1px; }
+  .feed li.new { animation: slidein .6s cubic-bezier(.2,.8,.2,1); }
+  @keyframes slidein { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .empty { color: var(--faint); font-size: 12.5px; padding: 4px 12px 2px; }
+
+  footer { text-align: center; color: var(--faint); font-size: 11px; margin-top: 4px; }
+  .err { color: var(--red); }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="eyebrow">Панель администратора</div>
+      <h1 id="clinic">Демо-стоматология</h1>
+      <div class="sub" id="day">Расписание на завтра</div>
+    </div>
+    <div class="live" id="live"><i></i>LIVE</div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi" id="k-conf">
+      <div class="label">Подтвердили визит</div>
+      <div class="value num"><span id="v-conf">—</span><small id="v-total"></small></div>
+      <div class="bar"><b id="v-bar"></b></div>
+    </div>
+    <div class="kpi" id="k-call">
+      <div class="label">Нужно обзвонить</div>
+      <div class="value num" id="v-call">—</div>
+      <div class="hint" id="v-call-hint">вместо всех записанных</div>
+    </div>
+    <div class="kpi money" id="k-rub">
+      <div class="label">Сохранено сегодня</div>
+      <div class="value num" id="v-rub">0 ₽</div>
+      <div class="hint" id="v-rub-hint">окна не пропали</div>
+    </div>
+    <div class="kpi" id="k-min">
+      <div class="label">Время администратора</div>
+      <div class="value num" id="v-min">0 мин</div>
+      <div class="hint">сэкономлено сегодня</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title"><h2>Расписание врачей</h2><span id="updated"></span></div>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i>подтвердил</span>
+      <span><i style="background:var(--amber)"></i>ждёт ответа</span>
+      <span><i style="background:var(--blue)"></i>просит перенос</span>
+      <span><i style="background:var(--cyan)"></i>перенёс сам (ИИ)</span>
+      <span><i style="background:var(--violet)"></i>из листа ожидания</span>
+      <span><i style="border:1.5px dashed var(--red)"></i>освободилось</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title"><h2>Что происходит сейчас</h2><span>без участия администратора</span></div>
+    <ul class="feed" id="feed"></ul>
+  </section>
+
+  <footer>Демо · пациенты и данные вымышленные</footer>
+
+<script>
+(() => {
+  const SUPABASE_URL = 'https://vbjxvkybydzdlqgzyjvd.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianh2a3lieWR6ZGxxZ3p5anZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NDQ0NzIsImV4cCI6MjEwNzMyMDQ3Mn0.7K_-3CnYx6meeOZV1U-LrH_Tx6d0Gb3VTkrw0DoKkSY';
+  const POLL_MS = 2000;
+
+  // --- Telegram Mini App без внешнего скрипта (telegram.org недоступен без VPN) ---
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const query = new URLSearchParams(location.search);
+  let uid = query.get('uid') ? Number(query.get('uid')) : null;
+  try {
+    const init = new URLSearchParams(hash.get('tgWebAppData') || '');
+    const user = JSON.parse(init.get('user') || 'null');
+    if (user && user.id) uid = user.id;
+  } catch (_) {}
+  function tgPost(type, data) {
+    const payload = JSON.stringify(data || {});
+    try {
+      if (window.TelegramWebviewProxy) window.TelegramWebviewProxy.postEvent(type, payload);
+      else if (window.external && 'notify' in window.external) window.external.notify(JSON.stringify({ eventType: type, eventData: data || {} }));
+      else if (window.parent !== window) window.parent.postMessage(JSON.stringify({ eventType: type, eventData: data || {} }), '*');
+    } catch (_) {}
+  }
+  tgPost('web_app_ready'); tgPost('web_app_expand');
+  tgPost('web_app_set_header_color', { color: '#0b0d12' });
+  tgPost('web_app_set_background_color', { color: '#0b0d12' });
+
+  const $ = (id) => document.getElementById(id);
+  const toMin = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+  const rub = (n) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const slotPx = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot'));
+
+  let prev = { appts: new Map(), feed: new Set(), kpi: null };
+  let gridBuiltFor = '';
+
+  function buildGrid(s) {
+    const key = s.day + '|' + s.doctors.map((d) => d.id).join(',');
+    if (gridBuiltFor === key) return;
+    gridBuiltFor = key;
+    const grid = $('grid');
+    grid.style.setProperty('--cols', s.doctors.length);
+    const from = toMin(s.work_from), to = toMin(s.work_to);
+    let html = '<div></div>' + s.doctors.map((d) => { const [last, ...ini] = d.name.split(' '); return `<div class="doc">${esc(last)}<span>${esc(ini.join(' '))} · ${esc(d.specialty.split('-')[0])}</span></div>`; }).join('');
+    html += '<div class="times">';
+    for (let t = from; t < to; t += 30) html += `<div>${t % 60 ? '' : String(t / 60).padStart(2, '0') + ':00'}</div>`;
+    html += '</div>';
+    html += s.doctors.map((d) => `<div class="col" id="col-${d.id}" style="height:${((to - from) / 30) * slotPx()}px"></div>`).join('');
+    grid.innerHTML = html;
+  }
+
+  function cls(a) {
+    const c = ['appt'];
+    if (a.source === 'waitlist') c.push('src-waitlist');
+    else if (a.moved) c.push('moved');
+    else c.push('s-' + a.status);
+    if (a.mine) c.push('mine');
+    return c.join(' ');
+  }
+
+  function render(s) {
+    $('clinic').textContent = s.clinic;
+    $('day').textContent = 'Расписание на ' + s.day_text;
+    buildGrid(s);
+    const from = toMin(s.work_from), px = slotPx() / 30;
+    const seen = new Map();
+
+    for (const d of s.doctors) {
+      const col = $('col-' + d.id);
+      const items = s.appointments.filter((a) => a.doctor_id === d.id);
+      const freed = s.freed.filter((f) => f.doctor_id === d.id);
+      let html = freed.map((f) => `<div class="freed" style="top:${(toMin(f.start) - from) * px}px;height:${f.duration * px - 2}px">${f.start} свободно</div>`).join('');
+      for (const a of items) {
+        const sig = a.status + a.source + a.moved + a.start;
+        seen.set(a.id, sig);
+        const changed = prev.appts.size && prev.appts.get(a.id) !== sig;
+        const h = a.duration * px - 2;
+        const label = a.mine ? 'Вы' : a.patient;
+        html += `<div class="${cls(a)}${changed ? ' flash' : ''}" style="top:${(toMin(a.start) - from) * px}px;height:${h}px" title="${esc(a.service)}">
+          <b>${esc(label)}</b>${h > 26 ? `<em>${a.start}${a.moved ? ' · ↻' : ''}</em>` : ''}</div>`;
+      }
+      col.innerHTML = html;
+    }
+    prev.appts = seen;
+
+    const k = s.kpi;
+    const bump = (id, cond) => { if (cond) { const el = $(id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } };
+    if (prev.kpi) {
+      bump('k-conf', k.confirmed !== prev.kpi.confirmed);
+      bump('k-call', k.to_call !== prev.kpi.to_call);
+      bump('k-rub', k.saved_rub !== prev.kpi.saved_rub);
+      bump('k-min', k.admin_min !== prev.kpi.admin_min);
+    }
+    prev.kpi = k;
+    $('v-conf').textContent = k.confirmed;
+    $('v-total').textContent = ' / ' + k.total;
+    $('v-bar').style.width = (k.total ? (k.confirmed / k.total) * 100 : 0) + '%';
+    $('v-call').textContent = k.to_call;
+    $('v-call-hint').textContent = 'вместо ' + k.total + ' звонков';
+    $('v-rub').textContent = rub(k.saved_rub);
+    $('v-rub-hint').textContent = (k.refilled + k.moved) ? `окон спасено: ${k.refilled + k.moved}` : 'окна не пропали';
+    $('v-min').textContent = k.admin_min >= 60 ? `${Math.floor(k.admin_min / 60)} ч ${k.admin_min % 60} мин` : `${k.admin_min} мин`;
+
+    const feed = $('feed');
+    if (!s.feed.length) feed.innerHTML = '<li class="empty" style="display:block">Пока тихо. Нажмите кнопку в напоминании — событие появится здесь.</li>';
+    else {
+      const first = prev.feed.size === 0;
+      feed.innerHTML = s.feed.map((e) => {
+        const id = e.at + e.text;
+        const isNew = !first && !prev.feed.has(id);
+        return `<li class="${isNew ? 'new' : ''}"><time class="num">${e.at}</time><span>${esc(e.text)}</span></li>`;
+      }).join('');
+      prev.feed = new Set(s.feed.map((e) => e.at + e.text));
+    }
+    $('updated').textContent = 'обновлено ' + new Date().toLocaleTimeString('ru-RU');
+  }
+
+  async function load() {
+    try {
+      let s;
+      if (query.get('mock') !== null) s = await (await fetch('mock.json', { cache: 'no-store' })).json();
+      else {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/panel_state', {
+          method: 'POST',
+          headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_uid: uid }),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        s = await res.json();
+      }
+      render(s);
+      $('live').classList.remove('off');
+    } catch (e) {
+      $('live').classList.add('off');
+      $('updated').innerHTML = '<span class="err">нет связи, повторяем…</span>';
+    } finally {
+      setTimeout(load, POLL_MS);
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>
